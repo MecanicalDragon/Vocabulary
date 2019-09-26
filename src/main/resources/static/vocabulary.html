@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Vocabulary</title>
+
+    <link rel="icon" href="/img/favicon.ico" type="image/x-icon">
+    <link href="css/bootstrap.css" rel="stylesheet" type="text/css">
+    <link href="css/bootstrap-grid.css" rel="stylesheet" type="text/css">
+    <link href="css/bootstrap-reboot.css" rel="stylesheet" type="text/css">
+    <link href="css/panels.css" rel="stylesheet" type="text/css">
+    <script src="js/angular175.js"></script>
+
+    <style>
+        .added {
+            background-color: greenyellow;
+            border-style: outset;
+            font-style: inherit;
+        }
+
+        .wrong {
+            background-color: #FF8686;
+            border-style: inset;
+            font-style: inherit;
+        }
+
+        .invisible {
+            opacity: 0;
+        }
+
+        .guide {
+            opacity: 0;
+            height: 0;
+        }
+    </style>
+
+</head>
+<body>
+<br>
+<div class="container">
+    <div class="panel panel-success" ng-app="voc" ng-controller="vocctrl">
+        <div class="panel-heading text-center">
+            <h1>Vocabulary</h1>
+        </div>
+        <div class="panel-body" id="vocabulary">
+            <div class="row">
+                <div class="col-4 text-left {{pair.correct | paintAnswer}}" ng-repeat="pair in pairs">
+                    <div class="row" ng-click="editPair(pair.id)" ng-mousedown="toLearn(pair, $event)"
+                         ng-if="pairEdition !== pair.id">
+                        <div class="col-6 text-left">
+                            {{pair.word}}
+                        </div>
+                        <div class="col-6 text-left">
+                            {{pair.translation}}
+                        </div>
+                    </div>
+                    <div class="row" ng-if="pairEdition === pair.id">
+                        <form ng-submit="editWord()" style="width: 100%;">
+                            <input type="text" ng-model="updword.upd"
+                                   placeholder="{{pair.word + '\\\\' + pair.translation}}"
+                                   autocomplete="off" style="height: 100%; width: 100%;"
+                                   ng-class="{wrong: passedEdition}" ng-click="editPair(pair.id)"/>
+                        </form>
+                    </div>
+                </div>
+                <div class="col-4 text-left">
+                    <div class="row" ng-mouseenter="changeGuideState()" ng-mouseleave="changeGuideStateToOff()">
+                        <div class="col-6 text-left">
+                            {{word}}
+                        </div>
+                        <div class="col-6 text-left">
+                            <form ng-submit="checkWord()">
+                                <input type="text" ng-model="translation" autocomplete="off" id="input"
+                                       style="width: 110%;" autofocus placeholder="{{placeholder}}"/>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="panel-footer">
+            <div class="row" ng-class="{guide: showGuide}">
+                <p id="guide">
+                    1. Just submit input field above to get words for translate. <br>
+                    2. Enter range in 'xx-yy' format for ranging words by ids. <br>
+                    3. Enter 'learn' keyword for learning chosen words. <br>
+                    4. Add '-en' suffix in the end of command to get vocabulary for 'en-ru' translation only.*<br>
+                    5. Add '-ru' suffix in the end of command to get vocabulary for 'ru-en' translation only.*<br>
+                    6. Click with mouse middle button on word pair to add it or remove from learning list. <br>
+                    7. Click with mouse primary button on word pair to edit it by the RULES**. <br>
+                    8. Use input field below to add new words to your vocabulary by the RULES**. <br>
+                    9. Enter 'shutdown' keyword to shut down the application. <br>
+                    * Only last command suffix will be recognized. The rest will be ignored.<br>
+                    ** RULES: Enter two words, separated by double backslash ('\\'). Whitespaces will be trimmed.<br>
+                    *** Always input english word first, and russian translation after. We can't verify it, but it
+                    matters.<br>
+                    **** You can see some information about working processes in console (pressing F12 in most
+                    cases).<br>
+                    ***** All entered answers are case sensitive, but not sensitive to keyboard layout. We commend
+                    simply
+                    not to use UPPERCASE.<br>
+                </p>
+            </div>
+            <div class="row">
+                <div class="col-3">
+                    <form ng-submit="addWord()">
+                        <input type="text" id="newWord" ng-model="newPair" autocomplete="off"
+                               ng-class="{added: pairAdded, wrong: pairWrong}" placeholder="{{separate}}"/>
+                    </form>
+                </div>
+                <div class="col-3 text-primary">
+                    <h5>Words: {{pairsCount}}/{{vocSize}}</h5>
+                </div>
+                <div class="col-3 text-success {{invisible}}">
+                    <!--<h2>{{percents}}% - doesn't works correct (maybe because of init values?)</h2>-->
+                    <!--do that using filter-->
+                    <h2>{{100 - mistakes*100/pairsCount | rounder}}%</h2>
+                </div>
+                <div class="col-3 text-danger">
+                    <h5>Mistakes: {{mistakes}}</h5>
+                </div>
+            </div>
+        </div>
+    </div>
+    <br>
+</div>
+
+<script>
+    var voc = angular.module("voc", []);
+
+    // service doesn't work correct. Maybe it uses init values and doesn't refresh it?
+    voc.service('$percenter', function () {
+        this.getPercent = function (mistakes, count) {
+            var x = 100 - mistakes * 100 / count;
+            return Math.round(x);
+        };
+    });
+
+    // painting the div of answer
+    voc.filter('paintAnswer', function () {
+        return function (clazz) {
+            if (clazz === true) {
+                return "added";
+            } else return "wrong";
+        };
+    });
+
+    // rounding the success percent
+    voc.filter('rounder', function () {
+        return function (number) {
+            return Math.round(number);
+        };
+    });
+
+    voc.directive("vocDirective", function () {
+        return {
+            template: "<p>Text from directive</p>"
+        };
+    });
+
+    // $percenter is for example here, it doesn't needed (must be added as an argument)
+    voc.controller("vocctrl", function ($scope, $http, $timeout) {
+        $scope.showGuide = true;
+        $scope.placeholder = "...or focus to guide";
+        $scope.invisible = "invisible";
+        $scope.pairEdition = 0;
+        $scope.nowInEdit = 0;
+        $scope.req = "all";
+        $scope.pairAdded = false;   //indicates successfully added words pair in 'newWord'
+        $scope.pairWrong = false;   //indicates not added words pair in 'newWord'
+        $scope.passedEdition = false;   //indicates not passed validation of edited word
+        $scope.pairsCount = 0;  //all given word pairs
+        $scope.mistakes = 0;    //correct pairs
+        // $scope.percents = $percenter.getPercent($scope.mistakes, $scope.pairsCount);    //just for example
+        $scope.newPair = "";
+        $scope.pairs = [];
+        $scope.word = "Press enter to start...";
+        $scope.translation = "";
+        $scope.updword = {upd: ""};
+        $scope.lastPair = undefined;
+        $scope.separate = "Separate words with '\\\\'";
+        $scope.vocSize = 0;
+        $scope.vocSizeConst = 0;
+
+        $scope.changeGuideState = function () {
+            if ($scope.placeholder === "...or focus to guide")
+                $scope.showGuide = false;
+        };
+        $scope.changeGuideStateToOff = function () {
+            if ($scope.placeholder === "...or focus to guide")
+                $scope.showGuide = true;
+        };
+
+        //  adding or removing pair for learning
+        $scope.toLearn = function (pair, evt) {
+            if (evt.button === 1) {
+                evt.preventDefault();
+                pair.toLearn = !pair.toLearn;
+                $http.post("learnWord", JSON.stringify(pair), {dataType: "text/plain"}).then(function (value) {
+                    console.log(value.data)
+                });
+            }
+
+            // working promise here:
+            // let promise = new Promise(function (resolve) {
+            //     $timeout(function () {
+            //         resolve("xxx");
+            //     }, 2000);
+            // });
+            // promise.then(xxx => {console.log(id);});
+
+        };
+
+        //  method for handling pair edition
+        $scope.editPair = function (id) {
+            if ($scope.pairEdition !== id) {
+                $scope.updword.upd = "";
+                $scope.pairEdition = id;
+            } else if ($scope.nowInEdit !== id) {
+                $scope.nowInEdit = id;
+            } else {
+                $scope.pairEdition = 0;
+                $scope.nowInEdit = 0;
+                $scope.updword.upd = "";
+            }
+        };
+
+        //  http request for getting new word-translation pair
+        $scope.getWord = function ($scope, $http) {
+            if ($scope.translation !== "") $scope.req = $scope.translation;
+            let request = "getWordList?range=" + $scope.req;
+            $http.get(request, {headers: {Accept: "application/json;charset=UTF-8"}})
+                .then(function (response) {
+                    $scope.word = response.data.word;
+                    $scope.lastPair = response.data;
+                })
+        };
+
+        //  just get vocabulary size 500ms after main request
+        $scope.getVocSize = function () {
+            $timeout(function () {
+                $http.get("getVocSize", {dataType: "text/plain"})
+                    .then(function (response) {
+                        console.log("Vocabulary size: " + response.data);
+                        $scope.vocSize = Number($scope.vocSize) + Number(response.data);
+                        $scope.vocSizeConst = Number(response.data);
+                    })
+            }, 500);
+
+        };
+
+        //  correct answer handling
+        $scope.correctAnswerHandling = function () {
+            $scope.pairsCount++;
+            $scope.lastPair.correct = true;
+            $scope.pairs.push($scope.lastPair);
+            $scope.word = "";
+            $scope.translation = "";
+            $scope.lastPair = undefined;
+            $scope.getWord($scope, $http);
+        };
+
+        //  checking answer
+        $scope.checkWord = function () {
+
+            //  if it's a first enter pressing
+            if ($scope.lastPair === undefined) {
+                $scope.getWord($scope, $http);
+                $scope.translation = "";
+                $scope.placeholder = "";
+                $scope.showGuide = true;
+                document.getElementById("guide").outerHTML = "";
+                $scope.getVocSize();
+                return;
+            }
+
+            //  other cases
+            $scope.invisible = "";
+
+            //  correct answer case
+            if ($scope.translation === $scope.lastPair.translation  ||
+                $scope.translation.toString().toLowerCase() === $scope.lastPair.translation.toString().toLowerCase()) {
+                $scope.correctAnswerHandling();
+            }
+
+            //  incorrect answer case
+            else {
+
+                //  replacing english layout with russian
+                let layout = $scope.translation
+                    .replace(/q/g, "й").replace(/w/g, "ц").replace(/e/g, "у").replace(/r/g, "к").replace(/t/g, "е").replace(/y/g, "н").replace(/i/g, "ш")
+                    .replace(/o/g, "щ").replace(/p/g, "з").replace(/\[/g, "х").replace(/]/g, "ъ").replace(/a/g, "ф").replace(/s/g, "ы").replace(/d/g, "в")
+                    .replace(/f/g, "а").replace(/g/g, "п").replace(/h/g, "р").replace(/j/g, "о").replace(/k/g, "л").replace(/l/g, "д").replace(/;/g, "ж")
+                    .replace(/z/g, "я").replace(/x/g, "ч").replace(/v/g, "м").replace(/b/g, "и").replace(/n/g, "т").replace(/m/g, "ь").replace(/,/g, "б")
+                    .replace(/\./g, "ю").replace(/'/g, "э").replace(/u/g, "г").replace(/c/g, "с").replace(/\?/g, ",").replace(/`/g, "ё");
+                if (layout === $scope.lastPair.translation) {
+                    $scope.correctAnswerHandling();
+                } else {
+
+                    //  replacing russian layout with english
+                    layout = layout
+                        .replace(/й/g, "q").replace(/ц/g, "w").replace(/у/g, "e").replace(/к/g, "r").replace(/е/g, "t").replace(/н/g, "y").replace(/г/g, "u")
+                        .replace(/ш/g, "i").replace(/щ/g, "o").replace(/з/g, "p").replace(/х/g, "[").replace(/ъ/g, "]").replace(/ф/g, "a").replace(/ы/g, "s")
+                        .replace(/в/g, "d").replace(/а/g, "f").replace(/п/g, "g").replace(/р/g, "h").replace(/о/g, "j").replace(/л/g, "k").replace(/д/g, "l")
+                        .replace(/ж/g, ";").replace(/э/g, "'").replace(/я/g, "z").replace(/ч/g, "x").replace(/с/g, "c").replace(/м/g, "v").replace(/и/g, "b")
+                        .replace(/т/g, "n").replace(/ь/g, "m").replace(/б/g, ",").replace(/ю/g, ".").replace(/,/g, "?").replace(/ё/g, "`");
+                    if (layout === $scope.lastPair.translation) {
+                        $scope.correctAnswerHandling();
+                    } else {
+
+                        //  100% wrong answer
+                        $scope.pairsCount++;
+                        $scope.mistakes++;
+                        $scope.lastPair.correct = false;
+                        $scope.pairs.push($scope.lastPair);
+                        $scope.translation = "";
+                        $scope.getWord($scope, $http);
+                    }
+                }
+            }
+            if ($scope.pairsCount > $scope.vocSize) {
+                $scope.vocSize += Number($scope.vocSizeConst);
+            }
+
+            if ($scope.pairsCount % 3 === 0 && document.body.clientHeight + 150 > window.outerHeight) {
+                setTimeout(function () {
+                    window.scrollTo(0, document.body.scrollHeight - 100);
+                }, 50);
+            }
+        };
+
+        //  update values od changed pair
+        $scope.updateEdited = function (item, index) {
+            if (item.id === $scope.pairEdition) {
+                item.word = $scope.updword.upd.split('\\\\')[0].trim();
+                item.translation = $scope.updword.upd.split('\\\\')[1].trim();
+            }
+        };
+
+        //   updating word in database
+        $scope.postEditedWord = function ($scope, $http) {
+            let word = $scope.updword.upd.split('\\\\')[0];
+            let translation = $scope.updword.upd.split('\\\\')[1];
+            if (word === undefined || translation === undefined || word.trim() === "" || translation.trim() === "") {
+                $scope.updword.upd = "";
+                return;
+            }
+            let updated = {
+                'id': $scope.pairEdition,
+                'word': word,
+                'translation': translation
+            };
+
+            $http.post("editWord", JSON.stringify(updated), {dataType: "text/plain"}).then(function (value) {
+                console.log(value.data)
+            });
+            $scope.passedEdition = false;
+            $scope.pairs.forEach($scope.updateEdited);
+            $scope.editPair(0);
+            $scope.updword.upd = "";
+            // console.log("successfully updated: " + JSON.stringify(updated)); //just for example
+        };
+
+        //  adding new word to database
+        $scope.postNewWord = function ($scope, $http) {
+            let pair = {
+                'word': $scope.newPair.split('\\\\')[0].trim(),
+                'translation': $scope.newPair.split('\\\\')[1].trim()
+            };
+            if (pair.word === undefined || pair.translation === undefined || pair.word === "" || pair.translation === "") {
+                $scope.pairAdded = false;
+                $scope.pairWrong = true;
+                return;
+            }
+            $http.post("addWord", JSON.stringify(pair), {dataType: "text/plain"}).then(function (value) {
+                console.log(value.data)
+            });
+            $scope.pairWrong = false;
+            $scope.pairAdded = true;
+            // console.log("added: " + JSON.stringify(pair)); //just for example
+        };
+
+        // adding new word to database trigger
+        $scope.addWord = function () {
+            $scope.postNewWord($scope, $http);
+            $scope.newPair = "";
+        };
+
+        //  adding edited word pair to database
+        $scope.editWord = function () {
+            $scope.postEditedWord($scope, $http);
+            $scope.pairEdition = 0;
+            $scope.nowInEdit = 0;
+        };
+    });
+</script>
+
+<!--Alternative form submition using java script-->
+<!--<script>-->
+<!--var input = document.getElementById("input");-->
+<!--input.addEventListener("keyup", function(event) {-->
+<!--event.preventDefault();-->
+<!--if (event.keyCode === 13) {-->
+<!--document.getElementById("btn").click();-->
+<!--}-->
+<!--});-->
+<!--</script>-->
+
+
+</body>
+</html>
