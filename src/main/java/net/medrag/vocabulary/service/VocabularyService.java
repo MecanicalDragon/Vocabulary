@@ -1,5 +1,7 @@
-package net.medrag.vocabulary.model;
+package net.medrag.vocabulary.service;
 
+import net.medrag.vocabulary.model.VocProps;
+import net.medrag.vocabulary.model.VocabularyPair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

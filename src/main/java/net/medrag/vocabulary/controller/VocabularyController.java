@@ -1,7 +1,7 @@
 package net.medrag.vocabulary.controller;
 
 import net.medrag.vocabulary.model.VocabularyPair;
-import net.medrag.vocabulary.model.VocabularyService;
+import net.medrag.vocabulary.service.VocabularyService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
