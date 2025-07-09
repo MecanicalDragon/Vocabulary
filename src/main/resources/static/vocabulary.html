@@ -45,8 +45,8 @@
         <div class="panel-body" id="vocabulary">
             <div class="row">
                 <div class="col-4 text-left {{pair.correct | paintAnswer}}" ng-repeat="pair in pairs">
-                    <div class="row" ng-click="editPair(pair.id)" ng-mousedown="toLearn(pair, $event)"
-                         ng-if="pairEdition !== pair.id">
+                    <div class="row">
+<!--                         ng-click="editPair(pair.id)" ng-mousedown="toLearn(pair, $event)" ng-if="pairEdition !== pair.id"-->
                         <div class="col-6 text-left">
                             {{pair.word}}
                         </div>
@@ -55,12 +55,12 @@
                         </div>
                     </div>
                     <div class="row" ng-if="pairEdition === pair.id">
-                        <form ng-submit="editWord()" style="width: 100%;">
-                            <input type="text" ng-model="updword.upd"
-                                   placeholder="{{pair.word + '\\\\' + pair.translation}}"
-                                   autocomplete="off" style="height: 100%; width: 100%;"
-                                   ng-class="{wrong: passedEdition}" ng-click="editPair(pair.id)"/>
-                        </form>
+<!--                        <form ng-submit="editWord()" style="width: 100%;">-->
+<!--                            <input type="text" ng-model="updword.upd"-->
+<!--                                   placeholder="{{pair.word + '\\\\' + pair.translation}}"-->
+<!--                                   autocomplete="off" style="height: 100%; width: 100%;"-->
+<!--                                   ng-class="{wrong: passedEdition}" ng-click="editPair(pair.id)"/>-->
+<!--                        </form>-->
                     </div>
                 </div>
                 <div class="col-4 text-left">
@@ -81,42 +81,25 @@
         <div class="panel-footer">
             <div class="row" ng-class="{guide: showGuide}">
                 <p id="guide">
-                    1. Just submit input field above to get words for translate. <br>
-                    2. Enter range in 'xx-yy' format for ranging words by ids. <br>
-                    3. Enter 'learn' keyword for learning chosen words. <br>
-                    4. Add '-en' suffix in the end of command to get vocabulary for 'en-ru' translation only.*<br>
-                    5. Add '-ru' suffix in the end of command to get vocabulary for 'ru-en' translation only.*<br>
-                    6. Click with mouse middle button on word pair to add it or remove from learning list. <br>
-                    7. Click with mouse primary button on word pair to edit it by the RULES**. <br>
-                    8. Use input field below to add new words to your vocabulary by the RULES**. <br>
-                    9. Enter 'shutdown' keyword to shut down the application. <br>
-                    * Only last command suffix will be recognized. The rest will be ignored.<br>
-                    ** RULES: Enter two words, separated by double backslash ('\\'). Whitespaces will be trimmed.<br>
-                    *** Always input english word first, and russian translation after. We can't verify it, but it
-                    matters.<br>
-                    **** You can see some information about working processes in console (pressing F12 in most
-                    cases).<br>
-                    ***** All entered answers are case sensitive, but not sensitive to keyboard layout. We commend
-                    simply
-                    not to use UPPERCASE.<br>
+                    No guide. Sorry.
                 </p>
             </div>
             <div class="row">
-                <div class="col-3">
-                    <form ng-submit="addWord()">
-                        <input type="text" id="newWord" ng-model="newPair" autocomplete="off"
-                               ng-class="{added: pairAdded, wrong: pairWrong}" placeholder="{{separate}}"/>
-                    </form>
-                </div>
-                <div class="col-3 text-primary">
+<!--                <div class="col-3">-->
+<!--                    <form ng-submit="addWord()">-->
+<!--                        <input type="text" id="newWord" ng-model="newPair" autocomplete="off"-->
+<!--                               ng-class="{added: pairAdded, wrong: pairWrong}" placeholder="{{separate}}"/>-->
+<!--                    </form>-->
+<!--                </div>-->
+                <div class="col-4 text-center text-primary">
                     <h5>Words: {{pairsCount}}/{{vocSize}}</h5>
                 </div>
-                <div class="col-3 text-success {{invisible}}">
-                    <!--<h2>{{percents}}% - doesn't works correct (maybe because of init values?)</h2>-->
+                <div class="col-4 text-center text-success {{invisible}}">
+                    <!--<h2>{{percents}}% - doesn't work correct (maybe because of init values?)</h2>-->
                     <!--do that using filter-->
                     <h2>{{100 - mistakes*100/pairsCount | rounder}}%</h2>
                 </div>
-                <div class="col-3 text-danger">
+                <div class="col-4 text-center text-danger">
                     <h5>Mistakes: {{mistakes}}</h5>
                 </div>
             </div>
@@ -249,6 +232,12 @@
 
         };
 
+        // check if at least one word guessed
+        $scope.containsWord = function(word, list) {
+            const words = list.split(',').map(w => w.trim());
+            return words.includes(word);
+        }
+
         //  correct answer handling
         $scope.correctAnswerHandling = function () {
             $scope.pairsCount++;
@@ -279,7 +268,8 @@
 
             //  correct answer case
             if ($scope.translation === $scope.lastPair.translation  ||
-                $scope.translation.toString().toLowerCase() === $scope.lastPair.translation.toString().toLowerCase()) {
+                $scope.containsWord($scope.translation.toString().trim().toLowerCase(), $scope.lastPair.translation.toString().toLowerCase())
+            ) {
                 $scope.correctAnswerHandling();
             }
 
@@ -287,26 +277,26 @@
             else {
 
                 //  replacing english layout with russian
-                let layout = $scope.translation
-                    .replace(/q/g, "й").replace(/w/g, "ц").replace(/e/g, "у").replace(/r/g, "к").replace(/t/g, "е").replace(/y/g, "н").replace(/i/g, "ш")
-                    .replace(/o/g, "щ").replace(/p/g, "з").replace(/\[/g, "х").replace(/]/g, "ъ").replace(/a/g, "ф").replace(/s/g, "ы").replace(/d/g, "в")
-                    .replace(/f/g, "а").replace(/g/g, "п").replace(/h/g, "р").replace(/j/g, "о").replace(/k/g, "л").replace(/l/g, "д").replace(/;/g, "ж")
-                    .replace(/z/g, "я").replace(/x/g, "ч").replace(/v/g, "м").replace(/b/g, "и").replace(/n/g, "т").replace(/m/g, "ь").replace(/,/g, "б")
-                    .replace(/\./g, "ю").replace(/'/g, "э").replace(/u/g, "г").replace(/c/g, "с").replace(/\?/g, ",").replace(/`/g, "ё");
-                if (layout === $scope.lastPair.translation) {
-                    $scope.correctAnswerHandling();
-                } else {
-
-                    //  replacing russian layout with english
-                    layout = layout
-                        .replace(/й/g, "q").replace(/ц/g, "w").replace(/у/g, "e").replace(/к/g, "r").replace(/е/g, "t").replace(/н/g, "y").replace(/г/g, "u")
-                        .replace(/ш/g, "i").replace(/щ/g, "o").replace(/з/g, "p").replace(/х/g, "[").replace(/ъ/g, "]").replace(/ф/g, "a").replace(/ы/g, "s")
-                        .replace(/в/g, "d").replace(/а/g, "f").replace(/п/g, "g").replace(/р/g, "h").replace(/о/g, "j").replace(/л/g, "k").replace(/д/g, "l")
-                        .replace(/ж/g, ";").replace(/э/g, "'").replace(/я/g, "z").replace(/ч/g, "x").replace(/с/g, "c").replace(/м/g, "v").replace(/и/g, "b")
-                        .replace(/т/g, "n").replace(/ь/g, "m").replace(/б/g, ",").replace(/ю/g, ".").replace(/,/g, "?").replace(/ё/g, "`");
-                    if (layout === $scope.lastPair.translation) {
-                        $scope.correctAnswerHandling();
-                    } else {
+                // let layout = $scope.translation
+                //     .replace(/q/g, "й").replace(/w/g, "ц").replace(/e/g, "у").replace(/r/g, "к").replace(/t/g, "е").replace(/y/g, "н").replace(/i/g, "ш")
+                //     .replace(/o/g, "щ").replace(/p/g, "з").replace(/\[/g, "х").replace(/]/g, "ъ").replace(/a/g, "ф").replace(/s/g, "ы").replace(/d/g, "в")
+                //     .replace(/f/g, "а").replace(/g/g, "п").replace(/h/g, "р").replace(/j/g, "о").replace(/k/g, "л").replace(/l/g, "д").replace(/;/g, "ж")
+                //     .replace(/z/g, "я").replace(/x/g, "ч").replace(/v/g, "м").replace(/b/g, "и").replace(/n/g, "т").replace(/m/g, "ь").replace(/,/g, "б")
+                //     .replace(/\./g, "ю").replace(/'/g, "э").replace(/u/g, "г").replace(/c/g, "с").replace(/\?/g, ",").replace(/`/g, "ё");
+                // if (layout === $scope.lastPair.translation) {
+                //     $scope.correctAnswerHandling();
+                // } else {
+                //
+                //     //  replacing russian layout with english
+                //     layout = layout
+                //         .replace(/й/g, "q").replace(/ц/g, "w").replace(/у/g, "e").replace(/к/g, "r").replace(/е/g, "t").replace(/н/g, "y").replace(/г/g, "u")
+                //         .replace(/ш/g, "i").replace(/щ/g, "o").replace(/з/g, "p").replace(/х/g, "[").replace(/ъ/g, "]").replace(/ф/g, "a").replace(/ы/g, "s")
+                //         .replace(/в/g, "d").replace(/а/g, "f").replace(/п/g, "g").replace(/р/g, "h").replace(/о/g, "j").replace(/л/g, "k").replace(/д/g, "l")
+                //         .replace(/ж/g, ";").replace(/э/g, "'").replace(/я/g, "z").replace(/ч/g, "x").replace(/с/g, "c").replace(/м/g, "v").replace(/и/g, "b")
+                //         .replace(/т/g, "n").replace(/ь/g, "m").replace(/б/g, ",").replace(/ю/g, ".").replace(/,/g, "?").replace(/ё/g, "`");
+                //     if (layout === $scope.lastPair.translation) {
+                //         $scope.correctAnswerHandling();
+                //     } else {
 
                         //  100% wrong answer
                         $scope.pairsCount++;
@@ -315,8 +305,8 @@
                         $scope.pairs.push($scope.lastPair);
                         $scope.translation = "";
                         $scope.getWord($scope, $http);
-                    }
-                }
+                //     }
+                // }
             }
             if ($scope.pairsCount > $scope.vocSize) {
                 $scope.vocSize += Number($scope.vocSizeConst);
