@@ -35,7 +35,8 @@ public class VocabularyService {
     }
 
     public List<VocabularyPair> getNewVoc(String range) {
-        final var iRange = Math.max(100, Integer.parseInt(range));
+        int iRange = Math.min(100, Math.abs(Integer.parseInt(range)));
+        if (iRange == 0) iRange = 100;
         List<VocabularyPair> voc = new ArrayList<>(iRange);
 
         try (Connection connection = DriverManager.getConnection(vocProps.getDbUrl());
