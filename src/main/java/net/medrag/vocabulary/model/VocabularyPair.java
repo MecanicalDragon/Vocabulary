@@ -6,10 +6,10 @@ package net.medrag.vocabulary.model;
  */
 public class VocabularyPair {
 
-    public int id;
-    public String word;
-    public String translation;
-    public boolean toLearn;
+    private int id;
+    private String word;
+    private String translation;
+    private boolean toLearn;
 
     public VocabularyPair(){}
 

@@ -1,5 +1,6 @@
 package net.medrag.vocabulary;
 
+import net.medrag.vocabulary.model.UserProps;
 import net.medrag.vocabulary.model.VocProps;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -7,7 +8,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.ConfigurableApplicationContext;
 
 @SpringBootApplication
-@EnableConfigurationProperties(VocProps.class)
+@EnableConfigurationProperties({VocProps.class, UserProps.class})
 public class Vocabulary {
 
     private static ConfigurableApplicationContext ctx;

@@ -24,6 +24,21 @@
             font-style: inherit;
         }
 
+        .btn-xs {
+             padding: 0.1rem 0.25rem;
+             margin-bottom: 0.2rem;
+             font-size: 0.8rem;
+             line-height: 1;
+        }
+
+        .learned {
+            background-color: #34bf0f;
+        }
+
+        .toLearn {
+            background-color: #cf4d4d;
+        }
+
         .invisible {
             opacity: 0;
         }
@@ -44,9 +59,11 @@
         </div>
         <div class="panel-body" id="vocabulary">
             <div class="row">
-                <div class="col-4 text-left {{pair.correct | paintAnswer}}" ng-repeat="pair in pairs">
+                <div class="col-4 text-left {{pair.correct | paintAnswer}}"
+                     ng-repeat="pair in pairs"
+                     ng-mouseenter="pair.hovered = true"
+                     ng-mouseleave="pair.hovered = false">
                     <div class="row">
-<!--                         ng-click="editPair(pair.id)" ng-mousedown="toLearn(pair, $event)" ng-if="pairEdition !== pair.id"-->
                         <div class="col-6 text-left">
                             {{pair.word}}
                         </div>
@@ -54,14 +71,8 @@
                             {{pair.translation}}
                         </div>
                     </div>
-                    <div class="row" ng-if="pairEdition === pair.id">
-<!--                        <form ng-submit="editWord()" style="width: 100%;">-->
-<!--                            <input type="text" ng-model="updword.upd"-->
-<!--                                   placeholder="{{pair.word + '\\\\' + pair.translation}}"-->
-<!--                                   autocomplete="off" style="height: 100%; width: 100%;"-->
-<!--                                   ng-class="{wrong: passedEdition}" ng-click="editPair(pair.id)"/>-->
-<!--                        </form>-->
-                    </div>
+                    <button ng-show="pair.hovered" ng-click="toLearn(pair, true)" class="btn btn-xs mt-2 toLearn">Learn</button>
+                    <button ng-show="pair.hovered" ng-click="toLearn(pair, false)" class="btn btn-xs mt-2 learned">Learned</button>
                 </div>
                 <div class="col-4 text-left">
                     <div class="row" ng-mouseenter="changeGuideState()" ng-mouseleave="changeGuideStateToOff()">
@@ -85,12 +96,12 @@
                 </p>
             </div>
             <div class="row">
-<!--                <div class="col-3">-->
-<!--                    <form ng-submit="addWord()">-->
-<!--                        <input type="text" id="newWord" ng-model="newPair" autocomplete="off"-->
-<!--                               ng-class="{added: pairAdded, wrong: pairWrong}" placeholder="{{separate}}"/>-->
-<!--                    </form>-->
-<!--                </div>-->
+                <!--                <div class="col-3">-->
+                <!--                    <form ng-submit="addWord()">-->
+                <!--                        <input type="text" id="newWord" ng-model="newPair" autocomplete="off"-->
+                <!--                               ng-class="{added: pairAdded, wrong: pairWrong}" placeholder="{{separate}}"/>-->
+                <!--                    </form>-->
+                <!--                </div>-->
                 <div class="col-4 text-center text-primary">
                     <h5>Words: {{pairsCount}}/{{vocSize}}</h5>
                 </div>
@@ -175,23 +186,11 @@
         };
 
         //  adding or removing pair for learning
-        $scope.toLearn = function (pair, evt) {
-            if (evt.button === 1) {
-                evt.preventDefault();
-                pair.toLearn = !pair.toLearn;
-                $http.post("learnWord", JSON.stringify(pair), {dataType: "text/plain"}).then(function (value) {
-                    console.log(value.data)
-                });
-            }
-
-            // working promise here:
-            // let promise = new Promise(function (resolve) {
-            //     $timeout(function () {
-            //         resolve("xxx");
-            //     }, 2000);
-            // });
-            // promise.then(xxx => {console.log(id);});
-
+        $scope.toLearn = function (pair, toLearn) {
+            pair.toLearn = toLearn;
+            $http.post("learnWord", JSON.stringify(pair), {dataType: "text/plain"}).then(function (value) {
+                console.log(value.data)
+            });
         };
 
         //  method for handling pair edition
@@ -233,7 +232,7 @@
         };
 
         // check if at least one word guessed
-        $scope.containsWord = function(word, list) {
+        $scope.containsWord = function (word, list) {
             const words = list.split(',').map(w => w.trim());
             return words.includes(word);
         }
@@ -267,7 +266,7 @@
             $scope.invisible = "";
 
             //  correct answer case
-            if ($scope.translation === $scope.lastPair.translation  ||
+            if ($scope.translation === $scope.lastPair.translation ||
                 $scope.containsWord($scope.translation.toString().trim().toLowerCase(), $scope.lastPair.translation.toString().toLowerCase())
             ) {
                 $scope.correctAnswerHandling();
@@ -275,38 +274,13 @@
 
             //  incorrect answer case
             else {
-
-                //  replacing english layout with russian
-                // let layout = $scope.translation
-                //     .replace(/q/g, "й").replace(/w/g, "ц").replace(/e/g, "у").replace(/r/g, "к").replace(/t/g, "е").replace(/y/g, "н").replace(/i/g, "ш")
-                //     .replace(/o/g, "щ").replace(/p/g, "з").replace(/\[/g, "х").replace(/]/g, "ъ").replace(/a/g, "ф").replace(/s/g, "ы").replace(/d/g, "в")
-                //     .replace(/f/g, "а").replace(/g/g, "п").replace(/h/g, "р").replace(/j/g, "о").replace(/k/g, "л").replace(/l/g, "д").replace(/;/g, "ж")
-                //     .replace(/z/g, "я").replace(/x/g, "ч").replace(/v/g, "м").replace(/b/g, "и").replace(/n/g, "т").replace(/m/g, "ь").replace(/,/g, "б")
-                //     .replace(/\./g, "ю").replace(/'/g, "э").replace(/u/g, "г").replace(/c/g, "с").replace(/\?/g, ",").replace(/`/g, "ё");
-                // if (layout === $scope.lastPair.translation) {
-                //     $scope.correctAnswerHandling();
-                // } else {
-                //
-                //     //  replacing russian layout with english
-                //     layout = layout
-                //         .replace(/й/g, "q").replace(/ц/g, "w").replace(/у/g, "e").replace(/к/g, "r").replace(/е/g, "t").replace(/н/g, "y").replace(/г/g, "u")
-                //         .replace(/ш/g, "i").replace(/щ/g, "o").replace(/з/g, "p").replace(/х/g, "[").replace(/ъ/g, "]").replace(/ф/g, "a").replace(/ы/g, "s")
-                //         .replace(/в/g, "d").replace(/а/g, "f").replace(/п/g, "g").replace(/р/g, "h").replace(/о/g, "j").replace(/л/g, "k").replace(/д/g, "l")
-                //         .replace(/ж/g, ";").replace(/э/g, "'").replace(/я/g, "z").replace(/ч/g, "x").replace(/с/g, "c").replace(/м/g, "v").replace(/и/g, "b")
-                //         .replace(/т/g, "n").replace(/ь/g, "m").replace(/б/g, ",").replace(/ю/g, ".").replace(/,/g, "?").replace(/ё/g, "`");
-                //     if (layout === $scope.lastPair.translation) {
-                //         $scope.correctAnswerHandling();
-                //     } else {
-
-                        //  100% wrong answer
-                        $scope.pairsCount++;
-                        $scope.mistakes++;
-                        $scope.lastPair.correct = false;
-                        $scope.pairs.push($scope.lastPair);
-                        $scope.translation = "";
-                        $scope.getWord($scope, $http);
-                //     }
-                // }
+                //  100% wrong answer
+                $scope.pairsCount++;
+                $scope.mistakes++;
+                $scope.lastPair.correct = false;
+                $scope.pairs.push($scope.lastPair);
+                $scope.translation = "";
+                $scope.getWord($scope, $http);
             }
             if ($scope.pairsCount > $scope.vocSize) {
                 $scope.vocSize += Number($scope.vocSizeConst);
