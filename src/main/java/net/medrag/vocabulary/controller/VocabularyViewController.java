@@ -12,7 +12,6 @@ public class VocabularyViewController {
 
     @GetMapping("/")
     public String getVocabulary(){
-        VocabularyController.resetVoc();
         return "vocabulary.html";
     }
 }

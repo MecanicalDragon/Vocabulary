@@ -21,31 +21,14 @@ public class VocabularyController {
         this.vocabularyService = vocabularyService;
     }
 
-    private static List<VocabularyPair> voc;
-    private static int pairCounter;
-
-    public static void resetVoc(){
-        voc = null;
-        pairCounter = 0;
-    }
-
     @GetMapping(value = "/getWordList", produces = "application/json;charset=UTF-8")
-    public VocabularyPair checkWord(@RequestParam String range) {
-        if (voc == null || pairCounter == voc.size()) {
-            voc = vocabularyService.getNewVoc(range);
-            pairCounter = 0;
-        }
-        return voc.get(pairCounter++);
+    public List<VocabularyPair> checkWord(@RequestParam String range) {
+        return vocabularyService.getNewVoc(range);
     }
 
     @PostMapping(value = "/addWord", produces = "text/plain")
     public String addWord(@RequestBody VocabularyPair pair) {
         return vocabularyService.saveNewPair(pair);
-    }
-
-    @GetMapping(value = "/getVocSize", produces = "text/plain")
-    public String getVocSize() {
-        return String.valueOf(voc.size());
     }
 
     @PostMapping(value = "/editWord", produces = "text/plain")

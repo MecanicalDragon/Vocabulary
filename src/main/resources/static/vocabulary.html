@@ -25,10 +25,10 @@
         }
 
         .btn-xs {
-             padding: 0.1rem 0.25rem;
-             margin-bottom: 0.2rem;
-             font-size: 0.8rem;
-             line-height: 1;
+            padding: 0.1rem 0.25rem;
+            margin-bottom: 0.2rem;
+            font-size: 0.8rem;
+            line-height: 1;
         }
 
         .learned {
@@ -40,10 +40,6 @@
         }
 
         .invisible {
-            opacity: 0;
-        }
-
-        .guide {
             opacity: 0;
             height: 0;
         }
@@ -75,14 +71,13 @@
                     <button ng-show="pair.hovered" ng-click="toLearn(pair, false)" class="btn btn-xs mt-2 learned">Learned</button>
                 </div>
                 <div class="col-4 text-left">
-                    <div class="row" ng-mouseenter="changeGuideState()" ng-mouseleave="changeGuideStateToOff()">
+                    <div class="row">
                         <div class="col-6 text-left">
                             {{word}}
                         </div>
                         <div class="col-6 text-left">
                             <form ng-submit="checkWord()">
-                                <input type="text" ng-model="translation" autocomplete="off" id="input"
-                                       style="width: 110%;" autofocus placeholder="{{placeholder}}"/>
+                                <input type="text" ng-model="translation" autocomplete="off" id="input" style="width: 110%;" autofocus/>
                             </form>
                         </div>
                     </div>
@@ -90,22 +85,16 @@
             </div>
         </div>
         <div class="panel-footer">
-            <div class="row" ng-class="{guide: showGuide}">
+            <div class="row" ng-class="{invisible: lastPair}">
                 <p id="guide">
-                    No guide. Sorry.
+                    Input vocabulary size or 'learn' to get words to learn.
                 </p>
             </div>
             <div class="row">
-                <!--                <div class="col-3">-->
-                <!--                    <form ng-submit="addWord()">-->
-                <!--                        <input type="text" id="newWord" ng-model="newPair" autocomplete="off"-->
-                <!--                               ng-class="{added: pairAdded, wrong: pairWrong}" placeholder="{{separate}}"/>-->
-                <!--                    </form>-->
-                <!--                </div>-->
                 <div class="col-4 text-center text-primary">
                     <h5>Words: {{pairsCount}}/{{vocSize}}</h5>
                 </div>
-                <div class="col-4 text-center text-success {{invisible}}">
+                <div class="col-4 text-center text-success" ng-class="{invisible: !lastPair}">
                     <!--<h2>{{percents}}% - doesn't work correct (maybe because of init values?)</h2>-->
                     <!--do that using filter-->
                     <h2>{{100 - mistakes*100/pairsCount | rounder}}%</h2>
@@ -142,7 +131,7 @@
     // rounding the success percent
     voc.filter('rounder', function () {
         return function (number) {
-            return Math.round(number);
+            return Math.round(number) | 0;
         };
     });
 
@@ -154,9 +143,6 @@
 
     // $percenter is for example here, it doesn't needed (must be added as an argument)
     voc.controller("vocctrl", function ($scope, $http, $timeout) {
-        $scope.showGuide = true;
-        $scope.placeholder = "...or focus to guide";
-        $scope.invisible = "invisible";
         $scope.pairEdition = 0;
         $scope.nowInEdit = 0;
         $scope.req = "10";
@@ -167,7 +153,9 @@
         $scope.mistakes = 0;    //correct pairs
         // $scope.percents = $percenter.getPercent($scope.mistakes, $scope.pairsCount);    //just for example
         $scope.newPair = "";
+        $scope.words = [];
         $scope.pairs = [];
+        $scope.pairCounter = 0;
         $scope.word = "Press enter to start...";
         $scope.translation = "";
         $scope.updword = {upd: ""};
@@ -175,15 +163,6 @@
         $scope.separate = "Separate words with '\\\\'";
         $scope.vocSize = 0;
         $scope.vocSizeConst = 0;
-
-        $scope.changeGuideState = function () {
-            if ($scope.placeholder === "...or focus to guide")
-                $scope.showGuide = false;
-        };
-        $scope.changeGuideStateToOff = function () {
-            if ($scope.placeholder === "...or focus to guide")
-                $scope.showGuide = true;
-        };
 
         //  adding or removing pair for learning
         $scope.toLearn = function (pair, toLearn) {
@@ -208,27 +187,29 @@
         };
 
         //  http request for getting new word-translation pair
-        $scope.getWord = function ($scope, $http) {
+        $scope.initVocabulary = function (fun) {
             if ($scope.translation !== "") $scope.req = $scope.translation;
             let request = "getWordList?range=" + $scope.req;
             $http.get(request, {headers: {Accept: "application/json;charset=UTF-8"}})
                 .then(function (response) {
-                    $scope.word = response.data.word;
-                    $scope.lastPair = response.data;
+                    $scope.words = response.data;
+                    $scope.vocSizeConst = Number($scope.words.length);
+                    $scope.vocSize = Number($scope.vocSize) + $scope.vocSizeConst;
+                    $scope.pairCounter = 0;
+                    if (fun) fun();
                 })
         };
 
-        //  just get vocabulary size 500ms after main request
-        $scope.getVocSize = function () {
-            $timeout(function () {
-                $http.get("getVocSize", {dataType: "text/plain"})
-                    .then(function (response) {
-                        console.log("Vocabulary size: " + response.data);
-                        $scope.vocSize = Number($scope.vocSize) + Number(response.data);
-                        $scope.vocSizeConst = Number(response.data);
-                    })
-            }, 500);
-
+        $scope.getWord = function () {
+            const fun = function () {
+                $scope.lastPair = $scope.words[$scope.pairCounter++];
+                $scope.word = $scope.lastPair.word;
+            }
+            if ($scope.pairCounter >= $scope.vocSizeConst) {
+                $scope.initVocabulary(fun);
+            } else {
+                fun();
+            }
         };
 
         // check if at least one word guessed
@@ -237,54 +218,34 @@
             return words.includes(word);
         }
 
-        //  correct answer handling
-        $scope.correctAnswerHandling = function () {
-            $scope.pairsCount++;
-            $scope.lastPair.correct = true;
-            $scope.pairs.push($scope.lastPair);
-            $scope.word = "";
-            $scope.translation = "";
-            $scope.lastPair = undefined;
-            $scope.getWord($scope, $http);
-        };
-
         //  checking answer
         $scope.checkWord = function () {
 
             //  if it's a first enter pressing
             if ($scope.lastPair === undefined) {
-                $scope.getWord($scope, $http);
-                $scope.translation = "";
-                $scope.placeholder = "";
-                $scope.showGuide = true;
-                document.getElementById("guide").outerHTML = "";
-                $scope.getVocSize();
+                $scope.initVocabulary(() => {
+                    $scope.getWord();
+                    $scope.translation = "";
+                });
                 return;
             }
 
-            //  other cases
-            $scope.invisible = "";
+            $scope.pairsCount++;
 
             //  correct answer case
             if ($scope.translation === $scope.lastPair.translation ||
                 $scope.containsWord($scope.translation.toString().trim().toLowerCase(), $scope.lastPair.translation.toString().toLowerCase())
             ) {
-                $scope.correctAnswerHandling();
-            }
-
-            //  incorrect answer case
-            else {
+                $scope.lastPair.correct = true;
+            } else {
                 //  100% wrong answer
-                $scope.pairsCount++;
-                $scope.mistakes++;
                 $scope.lastPair.correct = false;
-                $scope.pairs.push($scope.lastPair);
-                $scope.translation = "";
-                $scope.getWord($scope, $http);
+                $scope.mistakes++;
             }
-            if ($scope.pairsCount > $scope.vocSize) {
-                $scope.vocSize += Number($scope.vocSizeConst);
-            }
+            $scope.pairs.push($scope.lastPair);
+            $scope.word = "";
+            $scope.translation = "";
+            $scope.getWord();
 
             if ($scope.pairsCount % 3 === 0 && document.body.clientHeight + 150 > window.outerHeight) {
                 setTimeout(function () {
