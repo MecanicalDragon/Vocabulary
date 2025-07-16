@@ -26,7 +26,7 @@
 
         .btn-xs {
             padding: 0.1rem 0.25rem;
-            margin-bottom: 0.2rem;
+            margin-bottom: 0.4rem;
             font-size: 0.8rem;
             line-height: 1;
         }
@@ -37,6 +37,15 @@
 
         .toLearn {
             background-color: #cf4d4d;
+        }
+
+        .examples-block {
+            white-space: pre-line;
+            background-color: #f5f5f5;
+            margin-left: -10px;
+            margin-right: -8px;
+            padding-left: 3px;
+            border-radius: 7px;"
         }
 
         .invisible {
@@ -67,6 +76,7 @@
                             {{pair.translation}}
                         </div>
                     </div>
+                    <div class="row examples-block" ng-show="pair.hovered">{{pair.examples}}</div>
                     <button ng-show="pair.hovered" ng-click="toLearn(pair, true)" class="btn btn-xs mt-2 toLearn">Learn</button>
                     <button ng-show="pair.hovered" ng-click="toLearn(pair, false)" class="btn btn-xs mt-2 learned">Learned</button>
                 </div>
@@ -218,6 +228,14 @@
             return words.includes(word);
         }
 
+        $scope.amendPairExamples = function (pair) {
+            if (pair.examples.length == 2) {
+                pair.examples = ""
+            } else {
+                pair.examples = pair.examples.split("\"").filter(s => s.length > 2).join("\n")
+            }
+        }
+
         //  checking answer
         $scope.checkWord = function () {
 
@@ -242,6 +260,7 @@
                 $scope.lastPair.correct = false;
                 $scope.mistakes++;
             }
+            $scope.amendPairExamples($scope.lastPair);
             $scope.pairs.push($scope.lastPair);
             $scope.word = "";
             $scope.translation = "";

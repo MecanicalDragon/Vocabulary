@@ -1,5 +1,6 @@
 package net.medrag.vocabulary.service;
 
+import net.medrag.vocabulary.model.PairLearnDto;
 import net.medrag.vocabulary.model.UserProps;
 import net.medrag.vocabulary.model.VocProps;
 import net.medrag.vocabulary.model.VocabularyPair;
@@ -50,7 +51,7 @@ public class VocabularyService {
             statement.setInt(1, iRange);
             ResultSet rs = statement.executeQuery();
             while (rs.next()) {
-                voc.add(new VocabularyPair(rs.getInt("ID"), rs.getString("LANG2"), rs.getString("LANG1"), true));
+                voc.add(buildPair(rs));
             }
             LOGGER.info("Vocabulary size: {}", voc.size());
         } catch (SQLException e) {
@@ -98,7 +99,7 @@ public class VocabularyService {
         return "Not implemented";
     }
 
-    public String learnPair(VocabularyPair pair) {
+    public String learnPair(PairLearnDto pair) {
         try (Connection connection = DriverManager.getConnection(vocProps.getDbUrl());
              PreparedStatement statement = connection.prepareStatement(pair.isToLearn() ? ADD_LEARN : REMOVE_LEARN);
         ) {
@@ -120,7 +121,7 @@ public class VocabularyService {
             statement.setInt(1, userProps.getUser());
             final ResultSet rs = statement.executeQuery();
             while (rs.next()) {
-                voc.add(new VocabularyPair(rs.getInt("ID"), rs.getString("LANG2"), rs.getString("LANG1"), true));
+                voc.add(buildPair(rs));
             }
             LOGGER.info("Words to learn: {}", voc.size());
         } catch (SQLException e) {
@@ -128,5 +129,14 @@ public class VocabularyService {
         }
         Collections.shuffle(voc);
         return voc;
+    }
+
+    private VocabularyPair buildPair(ResultSet rs) throws SQLException {
+        return new VocabularyPair(
+            rs.getInt("ID"),
+            rs.getString("LANG2"),
+            rs.getString("LANG1"),
+            rs.getString("EXAMPLES")
+        );
     }
 }

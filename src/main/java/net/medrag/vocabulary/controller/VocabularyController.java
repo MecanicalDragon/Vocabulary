@@ -1,5 +1,6 @@
 package net.medrag.vocabulary.controller;
 
+import net.medrag.vocabulary.model.PairLearnDto;
 import net.medrag.vocabulary.model.VocabularyPair;
 import net.medrag.vocabulary.service.VocabularyService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,7 +38,7 @@ public class VocabularyController {
     }
 
     @PostMapping(value = "/learnWord", produces = "text/plain")
-    public String learnWord(@RequestBody VocabularyPair pair) {
+    public String learnWord(@RequestBody PairLearnDto pair) {
         return vocabularyService.learnPair(pair);
     }
 }
