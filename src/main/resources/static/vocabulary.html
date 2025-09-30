@@ -45,7 +45,8 @@
             margin-left: -10px;
             margin-right: -8px;
             padding-left: 3px;
-            border-radius: 7px;"
+            border-radius: 7px;
+        "
         }
 
         .invisible {
@@ -77,8 +78,12 @@
                         </div>
                     </div>
                     <div class="row examples-block" ng-show="pair.hovered">{{pair.examples}}</div>
-                    <button ng-show="pair.hovered" ng-click="toLearn(pair, true)" class="btn btn-xs mt-2 toLearn">Learn</button>
-                    <button ng-show="pair.hovered" ng-click="toLearn(pair, false)" class="btn btn-xs mt-2 learned">Learned</button>
+                    <button ng-show="pair.hovered" ng-click="toLearn(pair, true)" class="btn btn-xs mt-2 toLearn">
+                        Learn
+                    </button>
+                    <button ng-show="pair.hovered" ng-click="toLearn(pair, false)" class="btn btn-xs mt-2 learned">
+                        Learned
+                    </button>
                 </div>
                 <div class="col-4 text-left">
                     <div class="row">
@@ -87,7 +92,8 @@
                         </div>
                         <div class="col-6 text-left">
                             <form ng-submit="checkWord()">
-                                <input type="text" ng-model="translation" autocomplete="off" id="input" style="width: 110%;" autofocus/>
+                                <input type="text" ng-model="translation" autocomplete="off" id="input"
+                                       style="width: 110%;" autofocus/>
                             </form>
                         </div>
                     </div>
@@ -178,7 +184,7 @@
         $scope.toLearn = function (pair, toLearn) {
             pair.toLearn = toLearn;
             $http.post("learnWord", JSON.stringify(pair), {dataType: "text/plain"}).then(function (value) {
-                console.log(value.data)
+                console.log(pair.translation + "\n" + value.data)
             });
         };
 
@@ -224,8 +230,11 @@
 
         // check if at least one word guessed
         $scope.containsWord = function (word, list) {
-            const words = list.split(',').map(w => w.trim());
-            return words.includes(word);
+            word = word.toString().trim().toLowerCase()
+            const words = list.toString().toLowerCase().split(',').map(w => w.trim());
+            return word.includes(',')
+                ? word.split(',').map(w => w.trim()).every(w => words.includes(w))
+                : words.includes(word);
         }
 
         $scope.amendPairExamples = function (pair) {
@@ -252,7 +261,7 @@
 
             //  correct answer case
             if ($scope.translation === $scope.lastPair.translation ||
-                $scope.containsWord($scope.translation.toString().trim().toLowerCase(), $scope.lastPair.translation.toString().toLowerCase())
+                $scope.containsWord($scope.translation, $scope.lastPair.translation)
             ) {
                 $scope.lastPair.correct = true;
             } else {
