@@ -1,12 +1,12 @@
 package net.medrag.vocabulary.service;
 
+import lombok.RequiredArgsConstructor;
 import net.medrag.vocabulary.model.PairLearnDto;
 import net.medrag.vocabulary.model.UserProps;
 import net.medrag.vocabulary.model.VocProps;
 import net.medrag.vocabulary.model.VocabularyPair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.sql.*;
@@ -19,10 +19,12 @@ import java.util.List;
  * 13.11.2018
  */
 @Service
+@RequiredArgsConstructor
 public class VocabularyService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(VocabularyService.class);
     private static final String SELECT = "SELECT * FROM VOCABULARY ORDER BY RAND() LIMIT ?";
+    private static final String SELECT_RANGE = "SELECT * FROM VOCABULARY WHERE ID BETWEEN ? AND ? ORDER BY RAND()";
     private static final String ADD_LEARN = "INSERT INTO LEARNINGS (SUB_ID, WORD_ID) VALUES (?, ?)";
     private static final String REMOVE_LEARN = "DELETE FROM LEARNINGS WHERE SUB_ID = ? AND WORD_ID = ?";
     private static final String GET_LEARN = "SELECT * FROM VOCABULARY WHERE ID IN (SELECT WORD_ID FROM LEARNINGS WHERE SUB_ID = ?)";
@@ -30,34 +32,14 @@ public class VocabularyService {
     private final VocProps vocProps;
     private final UserProps userProps;
 
-    @Autowired
-    public VocabularyService(VocProps vocProps, UserProps userProps) {
-        this.vocProps = vocProps;
-        this.userProps = userProps;
-    }
-
     public List<VocabularyPair> getNewVoc(String range) {
         if ("learn".equals(range)) {
             return wordsToLearn();
         }
-        int iRange = Math.min(100, Math.abs(Integer.parseInt(range)));
-        if (iRange == 0) iRange = 100;
-        List<VocabularyPair> voc = new ArrayList<>(iRange);
-
-        try (Connection connection = DriverManager.getConnection(vocProps.getDbUrl());
-             PreparedStatement statement = connection.prepareStatement(SELECT);
-        ) {
-            LOGGER.info("Getting vocabulary of range {}...", iRange);
-            statement.setInt(1, iRange);
-            ResultSet rs = statement.executeQuery();
-            while (rs.next()) {
-                voc.add(buildPair(rs));
-            }
-            LOGGER.info("Vocabulary size: {}", voc.size());
-        } catch (SQLException e) {
-            LOGGER.error("Could not get vocabulary of size {}", iRange, e);
+        if (range.contains("-")) {
+            return wordsInRange(range);
         }
-        return voc;
+        return randomWords(range);
     }
 
     public String saveNewPair(VocabularyPair pair) {
@@ -128,6 +110,51 @@ public class VocabularyService {
             LOGGER.error("Could not get vocabulary for learning", e);
         }
         Collections.shuffle(voc);
+        return voc;
+    }
+
+    private List<VocabularyPair> wordsInRange(String range) {
+        var aRange = range.split("-");
+        var start = Integer.parseInt(aRange[0].trim());
+        var end = Integer.parseInt(aRange[1].trim());
+        var iStart = Math.min(start, end);
+        var iEnd = Math.max(start, end);
+        final List<VocabularyPair> voc = new ArrayList<>();
+        try (Connection connection = DriverManager.getConnection(vocProps.getDbUrl());
+             PreparedStatement statement = connection.prepareStatement(SELECT_RANGE);
+        ) {
+            statement.setInt(1, iStart);
+            statement.setInt(2, iEnd);
+            final ResultSet rs = statement.executeQuery();
+            while (rs.next()) {
+                voc.add(buildPair(rs));
+            }
+            LOGGER.info("Words in range: {} - {}, size: {}", iStart, iEnd, voc.size());
+        } catch (SQLException e) {
+            LOGGER.error("Could not get vocabulary in range", e);
+        }
+        Collections.shuffle(voc);
+        return voc;
+    }
+
+    private List<VocabularyPair> randomWords(String range) {
+        int iRange = Math.min(100, Math.abs(Integer.parseInt(range)));
+        if (iRange == 0) iRange = 100;
+        List<VocabularyPair> voc = new ArrayList<>(iRange);
+
+        try (Connection connection = DriverManager.getConnection(vocProps.getDbUrl());
+             PreparedStatement statement = connection.prepareStatement(SELECT);
+        ) {
+            LOGGER.info("Getting vocabulary of range {}...", iRange);
+            statement.setInt(1, iRange);
+            ResultSet rs = statement.executeQuery();
+            while (rs.next()) {
+                voc.add(buildPair(rs));
+            }
+            LOGGER.info("Vocabulary size: {}", voc.size());
+        } catch (SQLException e) {
+            LOGGER.error("Could not get vocabulary of size {}", iRange, e);
+        }
         return voc;
     }
 
