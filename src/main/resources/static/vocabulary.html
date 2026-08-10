@@ -77,13 +77,13 @@
                             {{pair.translation}}
                         </div>
                     </div>
-                    <div class="row examples-block" ng-show="pair.hovered">{{pair.examples}}</div>
                     <button ng-show="pair.hovered" ng-click="toLearn(pair, true)" class="btn btn-xs mt-2 toLearn">
                         Learn
                     </button>
                     <button ng-show="pair.hovered" ng-click="toLearn(pair, false)" class="btn btn-xs mt-2 learned">
                         Learned
                     </button>
+                    <div class="row examples-block" ng-show="pair.hovered">{{pair.examples}}</div>
                 </div>
                 <div class="col-4 text-left">
                     <div class="row">
